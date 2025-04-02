@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>IELTS Flashcards</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <button id="expandBtn" class="hidden">&gt;</button>
+
+  <div class="sidebar" id="sidebar">
+    <div>
+      <p><strong>单词表：</strong></p>
+      <ul class="word-list" id="word-list"></ul>
+    </div>
+    <div class="sidebar-buttons">
+      <button class="sidebar-btn" id="shuffleBtn">乱序</button>
+      <button class="sidebar-btn" id="collapseBtn">&lt;</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="flashcard-container">
+      <div class="flashcard" id="flashcard">
+        <div class="front">Click to Flip</div>
+        <div class="back">Definition and examples</div>
+      </div>
+    </div>
+    <div class="controls">
+      <button class="upload-btn" id="uploadBtn">Upload .txt File</button>
+      <input type="file" id="file-input" accept=".txt" style="display:none;" />
+      <button class="next-btn" id="nextBtn">Next Word</button>
+    </div>
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
