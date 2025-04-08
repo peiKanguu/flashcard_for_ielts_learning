@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>IELTS Flashcards</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(to right, #ece9e6, #ffffff);
+      margin: 0;
+      height: 100vh;
+      overflow: hidden;
+      position: relative;
+    }
+    .sidebar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100vh;
+      width: 180px;
+      background-color: #f1c40f;
+      padding: 20px 10px 80px 10px;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      transition: transform 0.3s ease;
+      transform: translateX(0);
+      z-index: 999;
+    }
+    .sidebar.collapsed {
+      transform: translateX(-100%);
+    }
+    .main {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding-top: 100px;
+      box-sizing: border-box;
+    }
+    .flashcard-top-bar {
+      position: absolute;
+      top: 20px;
+      right: 30px;
+    }
+    .upload-btn {
+      background-color: #e67e22;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      font-size: 14px;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+    input[type="file"] {
+      display: none;
+    }
+    .flashcard-container {
+      perspective: 1000px;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .flashcard {
+      width: 540px;
+      max-width: 90vw; /* 保证最大不超过屏幕宽度的90% */
+      min-height: 360px;
+      text-align: center;
+      transition: transform 0.6s;
+      transform-style: preserve-3d;
+      position: relative;
+      cursor: pointer;
+      transform-origin: center center;
+    }
+/* 小屏幕自适应 */
+@media (max-width: 768px) { 
+  .flashcard {
+    width: 90vw; /* 屏幕宽度的90% */
+    min-height: 240px; /* 小屏幕高度也可以适当降低 */
+  }
+}
+@media (max-width: 768px) { 
+  .flashcard .front, .flashcard .back {
+    font-size: 24px; /* 小屏幕字体也调小一点 */
+  }
+}
+    .flashcard.flip {
+      transform: rotateY(180deg);
+    }
+    .front, .back {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      box-sizing: border-box;
+      backface-visibility: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 12px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+      padding: 20px;
+      text-align: center;
+      font-size: 28px;
+      line-height: 1.4;
+    }
+    .front {
+      background: #3498db;
+      color: white;
+      font-size: 36px;
+    }
+    .back {
+      background: #f1c40f;
+      color: #333;
+      transform: rotateY(180deg);
+      font-size: 24px;
+      flex-direction: column;
+      white-space: pre-wrap;
+    }
+    .status-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin: 20px 0;
+    }
+    .status-btn {
+      padding: 8px 16px;
+      border-radius: 20px;
+      border: none;
+      font-size: 18px;
+      color: white;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    .unknown { background: #ff4757; }
+    .fuzzy { background: #ffa501; }
+    .mastered { background: #2ed573; }
+    .controls {
+      margin-top: 20px;
+      display: flex;
+      justify-content: center;
+    }
+    .next-btn {
+      background-color: #2ecc71;
+      color: white;
+      padding: 10px 20px;
+      font-size: 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      min-width: 120px;
+    }
+    .sidebar-buttons {
+      position: absolute;
+      bottom: 20px;
+      left: 12px;
+      display: flex;
+      gap: 10px;
+    }
+    .sidebar-btn {
+      background-color: #2ecc71;
+      color: white;
+      border: none;
+      padding: 8px;
+      font-size: 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      width: 50px;
+      height: 36px;
+    }
+    .word-list-container {
+      background: #fafaf9;
+      border-radius: 8px;
+      padding: 8px;
+      margin-top: 10px;
+      max-height: 75vh;
+      overflow-y: auto;
+    }
+    .word-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .word-list li {
+      margin-bottom: 8px;
+      font-weight: bold;
+      font-size: 12px;
+      cursor: pointer;
+      position: relative;
+    }
+    .word-list li:hover::after {
+      content: attr(data-definition);
+      display: block;
+      font-weight: normal;
+      font-size: 14px;
+      color: #333;
+      background: #fffdd0;
+      padding: 4px 6px;
+      border-radius: 4px;
+      position: absolute;
+      left: 0;
+      top: 100%;
+      margin-top: 4px;
+      white-space: nowrap;
+      z-index: 999;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .status-0 { color: #ff4757; }
+    .status-1 { color: #fec406; }
+    .status-2 { color: #2ed573; }
+    #expandBtn {
+      position: fixed;
+      bottom: 20px;
+      left: 12px;
+      width: 36px;
+      height: 36px;
+      font-size: 18px;
+      background-color: white;
+      color: #2ecc71;
+      border: none;
+      border-radius: 6px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 0;
+    }
+    #expandBtn.hidden { display: none; }
+
+    .speaker-btn {
+      position: absolute;
+      bottom: 12px;
+      right: 12px;
+      width: 36px;
+      height: 36px;
+      background: white;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .speaker-btn svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .example-audio {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-left: 6px;
+      cursor: pointer;
+    }
+
+    .example-audio svg {
+      width: 16px;
+      height: 16px;
+      vertical-align: middle;
+    }
+
+    .wrongbook-btn {
+      background-color: #9b59b6; /* 紫色 */
+      margin-left: 10px; /* 和上传按钮稍微隔开一点 */
+      transition: background-color 0.3s ease;
+    }
+
+    .wrongbook-btn:hover {
+      background-color: #8e44ad; /* 悬停时更深一点 */
+    }
+
+    @keyframes popIn {
+      0% { transform: scale(0.7); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+  </style>
+</head>
+<body>
+
+  <button id="expandBtn" class="hidden" onclick="toggleSidebar(true)">&gt;</button>
+
+
+  <div class="sidebar" id="sidebar">
+    <div>
+      <p><strong>单词表：</strong></p>
+      <div class="word-list-container">
+        <ul class="word-list" id="word-list"></ul>
+      </div>
+    </div>
+    
+    <div class="sidebar-buttons">
+      <button class="sidebar-btn" onclick="toggleSidebar(false)">&lt;</button>
+      <button class="sidebar-btn" onclick="shuffleWords()">乱序</button>
+    </div>
+  </div>  
+
+  <div class="flashcard-top-bar">
+    <label class="upload-btn">
+      导入单词
+      <input type="file" id="file-input" accept=".txt" onchange="loadWords()">
+    </label>
+
+    <button class="upload-btn wrongbook-btn" onclick="showWrongWords()">📚 错题本</button>
+
+  </div>
+
+  <div class="main">
+    <div class="flashcard-container">
+      <div class="flashcard" id="flashcard" onclick="flipCard()">
+        <div class="front" id="front">Click to Flip</div>
+        <div class="back" id="back">Definition and examples</div>
+      </div>
+    </div>
+
+    <div class="status-buttons">
+      <button class="status-btn unknown" onclick="setStatus(0)">不会</button>
+      <button class="status-btn fuzzy" onclick="setStatus(1)">模糊</button>
+      <button class="status-btn mastered" onclick="setStatus(2)">会了</button>
+    </div>
+
+    <div class="controls">
+    </div>
+
+    <button id="practice-btn" onclick="togglePractice()" style="
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background-color: #2ecc71;
+      color: white;
+      font-size: 30px;
+      border: none;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 999;
+      transition: background-color 0.3s ease;
+    ">
+    ▶️
+    </button>
+
+    <div id="result-modal" style="
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      background: rgba(0,0,0,0.4);
+      
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+    ">
+      <div style="
+        background: white;
+        padding: 30px;
+        border-radius: 12px;
+        width: 400px;
+        max-width: 90%;
+        text-align: center;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        animation: popIn 0.3s ease;
+      ">
+        <h2 id="modal-title" style="margin-top: 0;">练习总结</h2>
+        <div id="modal-content" style="margin: 20px 0; font-size: 16px; white-space: pre-wrap; text-align: left;"></div>
+        <button onclick="closeModal()" style="
+          margin-top: 20px;
+          padding: 10px 20px;
+          background-color: #2ecc71;
+          color: white;
+          border: none;
+          border-radius: 6px;
+          font-size: 16px;
+          cursor: pointer;
+        ">知道了</button>
+      </div>
+    </div>
+
+  </div>
+
+<script>
+let words = [];
+let currentIndex = 0;
+const flashcard = document.getElementById('flashcard');
+const front = document.getElementById('front');
+const back = document.getElementById('back');
+const wordListElement = document.getElementById('word-list');
+const sidebar = document.getElementById('sidebar');
+const expandBtn = document.getElementById('expandBtn');
+
+let practiceStarted = false;
+let practiceCompleted = false;  // <=== 新增！！
+let startTime = 0;
+let fuzzyCounts = {};
+let wrongCounts = {};
+
+function loadWords() {
+  const file = document.getElementById('file-input').files[0];
+  const reader = new FileReader();
+  reader.onload = function(event) {
+    const lines = event.target.result.split(/\r?\n/);
+    words = [];
+    for (let i = 0; i < lines.length;) {
+      while (i < lines.length && lines[i].trim() === '') i++;
+      if (i >= lines.length) break;
+      
+      const line1 = lines[i++].trim();
+      let example1 = '';
+      let example2 = '';
+
+      if (i < lines.length && lines[i].trim() !== '') {
+        example1 = lines[i++].trim().replace(/^ex\d*[:.\s]*\s*/i, '');
+        if (i < lines.length && lines[i].trim() !== '') {
+          example2 = lines[i++].trim().replace(/^ex\d*[:.\s]*\s*/i, '');
+        }
+      }
+
+      // 新版：用正则智能解析单词词组、词性、释义
+      let word = '', pos = '', meaning = '';
+      const match = line1.match(/^(.+?)\s+(\w+\.)\s+(.*)$/);
+      if (match) {
+        word = match[1].trim();
+        pos = match[2].trim();
+        meaning = match[3].trim();
+      } else {
+        // 如果不符合完整格式，尽量兼容处理
+        const parts = line1.trim().split(/\s+/);
+        word = parts[0] || '';
+        pos = '';
+        meaning = parts.slice(1).join(' ') || '';
+      }
+
+      words.push({ 
+        word, 
+        definition: (pos + ' ' + meaning).trim(), 
+        example1, 
+        example2, 
+        status: 0,
+        wrongCount: 0
+      });
+    }
+    updateWordList();
+    currentIndex = 0;
+    showWord();
+  };
+  reader.readAsText(file);
+  localStorage.setItem('savedWords', JSON.stringify(words));
+}
+
+function showWord() {
+  if (words.length > 0 && currentIndex < words.length) {
+    const w = words[currentIndex];
+
+    // 正面：单词+大喇叭
+    front.innerHTML = `
+      ${w.word}
+      <button class="speaker-btn" onclick="event.stopPropagation(); speakText('${w.word}')">
+        <svg viewBox="0 0 24 24"><path d="M3 10v4h4l5 5V5L7 10H3zm13.5 2c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.74 2.5-2.26 2.5-4.02z"/></svg>
+      </button>
+    `;
+
+    // 背面：释义+例句（例句和喇叭用flex排版）
+    let backHTML = `${w.definition}`;
+
+    if (w.example1) {
+      backHTML += `
+        <div style="display: flex; align-items: center; margin-bottom: 12px;">
+          <span style="flex: 1;">${w.example1}</span>
+          <span class="example-audio" style="margin-left: 8px;" onclick="event.stopPropagation(); speakText(\`${w.example1}\`)">
+            <svg viewBox="0 0 24 24" style="width: 18px; height: 18px;"><path d="M3 10v4h4l5 5V5L7 10H3zm13.5 2c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.74 2.5-2.26 2.5-4.02z"/></svg>
+          </span>
+        </div>
+      `;
+    }
+
+    if (w.example2) {
+      backHTML += `
+        <div style="display: flex; align-items: center; margin-bottom: 12px;">
+          <span style="flex: 1;">${w.example2}</span>
+          <span class="example-audio" style="margin-left: 8px;" onclick="event.stopPropagation(); speakText(\`${w.example2}\`)">
+            <svg viewBox="0 0 24 24" style="width: 18px; height: 18px;"><path d="M3 10v4h4l5 5V5L7 10H3zm13.5 2c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.74 2.5-2.26 2.5-4.02z"/></svg>
+          </span>
+        </div>
+      `;
+    }
+
+    back.innerHTML = backHTML;
+    flashcard.classList.remove('flip');
+  }
+}
+
+function togglePractice() {
+  if (!practiceStarted) {
+    // 开始练习
+    practiceStarted = true;
+    practiceCompleted = false; // 开始时清除上次的完成标记
+    startTime = Date.now();
+    fuzzyCounts = {};
+    wrongCounts = {};
+    document.getElementById('practice-btn').innerText = '⏸️';
+  } else {
+    // 结束练习
+    practiceStarted = false;
+    practiceCompleted = true; // 标记本次练习完成
+    const durationSeconds = Math.floor((Date.now() - startTime) / 1000);
+    document.getElementById('practice-btn').innerText = '▶️';
+    showPracticeResult(durationSeconds);
+  }
+}
+
+function nextWord() {
+  currentIndex = (currentIndex + 1) % words.length;
+  showWord();
+}
+
+function shuffleWords() {
+  for (let i = words.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [words[i], words[j]] = [words[j], words[i]];
+  }
+  updateWordList();
+  currentIndex = 0;
+  showWord();
+}
+
+function updateWordList() {
+  wordListElement.innerHTML = '';
+  words.forEach((w, idx) => {
+    const li = document.createElement('li');
+    li.className = `status-${w.status}`;
+    li.textContent = `${idx + 1}. ${w.word}`;
+    li.setAttribute('data-definition', w.definition);
+    li.onclick = () => { currentIndex = idx; showWord(); };
+    wordListElement.appendChild(li);
+  });
+}
+
+function setStatus(status) {
+  if (words.length > 0) {
+    words[currentIndex].status = status;
+
+    if (practiceStarted) {
+      const word = words[currentIndex].word;
+      if (status === 0) {
+        words[currentIndex].wrongCount += 1;
+        wrongCounts[word] = (wrongCounts[word] || 0) + 1;
+      } else if (status === 1) {
+        fuzzyCounts[word] = (fuzzyCounts[word] || 0) + 1;
+      }
+    }
+
+    updateWordList();
+    nextWord();
+  }
+}
+
+function showPracticeResult(durationSeconds) {
+  // 防止没有真正练习就弹总结
+  if (!practiceCompleted || startTime === 0) {
+    return;
+  }
+
+  let message = `🕑 本次练习用时：${durationSeconds}秒\n\n`;
+
+  if (Object.keys(wrongCounts).length === 0 && Object.keys(fuzzyCounts).length === 0) {
+    message += '🎉 所有单词掌握得很好！';
+  } else {
+    if (Object.keys(wrongCounts).length > 0) {
+      message += '❌ 不会的单词：\n';
+      for (let word in wrongCounts) {
+        message += `- ${word}（错误${wrongCounts[word]}次）\n`;
+      }
+      message += '\n';
+    }
+    if (Object.keys(fuzzyCounts).length > 0) {
+      message += '❓ 模糊的单词：\n';
+      for (let word in fuzzyCounts) {
+        message += `- ${word}（模糊${fuzzyCounts[word]}次）\n`;
+      }
+    }
+  }
+
+  document.getElementById('modal-title').innerText = '练习总结';
+  document.getElementById('modal-content').innerText = message;
+  document.getElementById('result-modal').style.display = 'flex';
+}
+
+// 关闭总结弹窗
+function closeModal() {
+  document.getElementById('result-modal').style.display = 'none';
+}
+
+function flipCard() {
+  flashcard.classList.toggle('flip');
+}
+
+function toggleSidebar(show) {
+  if (show) {
+    sidebar.classList.remove('collapsed');
+    expandBtn.classList.add('hidden');
+  } else {
+    sidebar.classList.add('collapsed');
+    expandBtn.classList.remove('hidden');
+  }
+}
+
+function speakText(text) {
+  const utterance = new SpeechSynthesisUtterance(text);
+  speechSynthesis.speak(utterance);
+}
+
+function showWrongWords() {
+  let wrongWords = words.filter(w => w.wrongCount > 0);
+  let message = '';
+
+  if (wrongWords.length === 0) {
+    message = '🎉 本次练习中没有错题，继续加油！';
+  } else {
+    message = `📚 错题本（共${wrongWords.length}个）:\n\n`;
+    wrongWords.forEach(w => {
+      message += `- ${w.word}（错误${w.wrongCount}次）\n`;
+    });
+  }
+
+  // 填充并打开Modal弹窗
+  document.getElementById('modal-title').innerText = '错题本总结';
+  document.getElementById('modal-content').innerText = message;
+  document.getElementById('result-modal').style.display = 'flex';
+}
+
+</script>
+
+</body>
+</html>
